@@ -22,7 +22,7 @@ def simple_g2p(text,cmudict):
 
     return phonemes
 
-# cmudict = load_cmudict('cmudict-0.7b')
-# text = "Hello World"
-# phonemes = simple_g2p(text,cmudict)
-# print(phonemes)
+cmudict = load_cmudict('cmudict-0.7b')
+text = "Hello World"
+phonemes = simple_g2p(text,cmudict)
+print(phonemes)
