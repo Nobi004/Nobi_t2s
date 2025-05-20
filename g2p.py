@@ -22,7 +22,8 @@ def simple_g2p(text,cmudict):
 
     return phonemes
 
-cmudict = load_cmudict('cmudict-0.7b')
+cmudict = load_cmudict('cmudict-0.7b') #The CMU Pronouncing Dictionary
+
 text = "Hello World"
-phonemes = simple_g2p(text,cmudict)
+phonemes = simple_g2p(text,cmudict) #phoneme is a unit of sound in speech
 print(phonemes)
