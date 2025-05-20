@@ -1,9 +1,9 @@
 import numpy as np 
-def simple_dtw(audio,phonemes):
-    # placeholder assume uniform duration
-    duration_per_phoneme = len(audio) // len(phonemes) * 22050 // 256
-    durations = np.array([duration_per_phoneme] *len(phonemes))
-    return durations
+def simple_dtw(audio, phonemes):
+    # Placeholder: assume uniform duration
+    duration_per_phoneme = len(audio) // (len(phonemes) * 22050 // 256)
+    durations = [duration_per_phoneme] * len(phonemes)
+    return np.array(durations)
 
 # pitch extraction function
 def extract_pitch(audio ,sr=22050,frame_length=1024,hop_length=512):
