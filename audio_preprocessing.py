@@ -16,6 +16,10 @@ def extract_pitch(audio ,sr=22050,frame_length=1024,hop_length=512):
         f0.append(sr/peak)
     return np.array(f0)
 
-
+# Energy extraction function
+def extract_energy(audio,frame_length=1024,hop_length=512):
+    frames = [audio[i:i+frame_length] for i in range(0,len(audio)-frame_length,hop_length)]
+    energy = [np.sqrt(np.mean(frame**2)) for frame in frames]
+    return np.array(energy)
 
 
