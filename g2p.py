@@ -11,16 +11,16 @@ def load_cmudict(file_path):
             cmudict[word] = phonemes
     return cmudict 
 
-# def simple_g2p(text,cmudict):
-#     word = text.lower()
-#     phonemes = cmudict.get(word)
-#     for word in cmudict:
-#         if word.startswith(text):
-#             phonemes.extend(cmudict[word])
-#         else:
-#             phonemes = cmudict.get(word)
+def simple_g2p(text,cmudict):
+    word = text.lower()
+    phonemes = cmudict.get(word)
+    for word in cmudict:
+        if word.startswith(text):
+            phonemes.extend(cmudict[word])
+        else:
+            phonemes = cmudict.get(word)
 
-#     return phonemes
+    return phonemes
 
 # cmudict = load_cmudict('cmudict-0.7b')
 # text = "Hello World"
