@@ -132,6 +132,19 @@ class WaveformDecoder(nn.Module):
         x = self.final_conv(x)
         return x.squeeze(1)
     
+class End2EndTTS(nn.Module):
+    def __init__(self,vocab_size=256,d_model=256,nhead=4,num_encoder_layers=4,num_blocks=30,channels=64):
+        super().__init__()
+        self.encoder = Encoder(vocab_size,d_model,nhead,num_encoder_layers)
+        self.variance_adaptor = VarianceAdaptor(d_model)
+        self.waveform_decoder = WaveformDecoder(d_model,num_blocks=num_blocks,channels=channels)
+
+    def forward(self,text,D_gt=None,P_gt=None,E_gt=None,is_inference=False):
+        H = self.encoder(text)
+        H_adapted,D_pred,P_pred,E_pred = self.variance_adaptor(H,D_gt,P_gt,E_gt,is_inference)
+        waveform = self.waveform_decoder(H_adapted)
+        return waveform,D_pred,P_pred,E_pred
+    
 
         
 
