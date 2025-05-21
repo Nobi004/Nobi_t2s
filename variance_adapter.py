@@ -71,7 +71,7 @@ class VarianceAdaptor(nn.Module):
         E = E_pred if is_inference else E_gt
         P_proj = self.pitch_proj(P.unsqueeze(-1))
         E_proj = self.energy_proj(E.unsqueeze(-1))
-        H__adapted = H_expanded + P_proj+E_proj
+        H_adapted = H_expanded + P_proj+E_proj
         return H_adapted,D_pred,P_pred,E_pred
 
         
