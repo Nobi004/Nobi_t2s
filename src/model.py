@@ -60,7 +60,38 @@ class EnergyPredictor(nn.Module):
         return x
 
 
-class
+class VarianceAdaptor(nn.Module):
+    def __init__(self,d_model=25):
+        super().__init__()
+        self.duration_predictor = DurationPredictor(d_model)
+        self.pitch_predictor = PitchPredictor(d_model)
+        self.energy_predictor = EnergyPredictor(d_model)
+        self.pitch_proj = nn.Linear(1,d_model)
+        self.energy_proj = nn.linear(1,d_model)
+
+    def expand_hidden(self,H,D):
+        batch_size,seq_len,d_model = H.size()
+        D= D.long()
+        max_T = D.sum(dim=1).max()
+        H_expanded = torch.zeros(batch_size,max_T,d_model,device=H.device)
+        for b in range(batch_size):
+            indices = torch.repeat_interleave(torch.arrange(seq_len,device=H.device),D[b])
+            H_expanded[b,:len(indices)] = H[b,indices]
+            return H_expanded
+
+    def forward(self,H,D_gt=None,P_gt=None,E_gt=None,is_inference=False):
+        D_pred = self.duration_predictor(H)
+        D = D_pred if is_inference else D_gt 
+        H_expanded = self.expand_hidden(H,D)
+        P_pred = self.pitch_predictor(H_expanded)
+        E_pred = self.energy_predictor(H_expanded)
+        P = P_pred if is_inference else P_gt
+        E = E_pred if is_inference else E_gt
+        P_proj = self.pitch_proj(P.unsqueeze(-1))
+        E_proj = self.energy_proj(E.unsqueeze(-1))
+        H_adapted = H_expanded + P_proj + E_proj
+        return H_adapted, D_pred, P_pred, E_pred
+
 
 
   
