@@ -115,6 +115,25 @@ class ResidualBlock(nn.Module):
         return x + residual
     
 
+class WaveformDecoder(nn.Module):
+    def __init__(self,in_channels=256,out_channels=1,num_blocks=30,channels=64):
+        super().__init__()
+        self.unsample = nn.ConvTranspose1d(in_channels,channels,kernel_size=256,stride=256)
+        self.blocks = nn.ModuleList([
+            ResidualBlock(channels,kernel_size=3,dilation=2**(i % 10))
+            for i in range(num_blocks)
+        ])
+        self.final_conv = nn.Conv1d(channels,out_channels,kernel_size=1)
+
+    def forward(self,x):
+        x = self.unsample(x)
+        for block in self.blocks:
+            x = block(x)
+        x = self.final_conv(x)
+        return x.squeeze(1)
+    
+
+        
 
 
   
