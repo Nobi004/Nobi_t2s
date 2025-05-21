@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from waveform_decoder import WaveformDecoder
-from text_encoder import Encoder        # assuming "Encoder" is in encoder_module.py
+from text_encoder import TExtEncoder        # assuming "Encoder" is in encoder_module.py
 from variance_adaptor import VarianceAdaptor  # assuming "VarianceAdaptor" is in variance_adaptor.py
 class End2EndTTSModel(nn.Module):
     def __init__(self,vocab_size=100,d_model=256,nhead=4,num_encoder_layers=4,num_blocks=30,channels=64):
