@@ -92,6 +92,17 @@ class VarianceAdaptor(nn.Module):
         H_adapted = H_expanded + P_proj + E_proj
         return H_adapted, D_pred, P_pred, E_pred
 
+class GateDialatedConv(nn.Module):
+    def __init__(self,channels,kernel_size,dilation):
+        super().__init__()
+        padding = (kernel_size -1)* dilation // 2
+        self.conv = nn.Conv1d(channels,2 *channels,kernel_size,dilation,padding)
+
+    def forward(self,x):
+        z = self.conv(x)
+        z1,z2 = z.chunk(2,dim=1)
+        return torch.tanh(z1) * torch.sigmoid(z2)
+    
 
 
   
