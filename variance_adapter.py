@@ -51,7 +51,7 @@ class VarianceAdaptor(nn.Module):
         
         
     def expand_hidden(self,H,D):
-        batch_size,seq_len,hidden_dim , d_model = H.size()
+        batch_size,seq_len, d_model = H.size()
         D = D.long()
         max_T = D.sum(dim=1).max()
         H_expanded = torch.zeros(batch_size,max_T,d_model).to(H.device)
@@ -61,10 +61,10 @@ class VarianceAdaptor(nn.Module):
             
         return H_expanded
     
-    def forward(self,H,D_gt=None,p_gt=None,E_gt=None,is_inference=False):
+    def forward(self,H,D_gt=None,P_gt=None,E_gt=None,is_inference=False):
         D_pred = self.duration_predictor(H)
         D = D_pred if is_inference else D_gt
-        H_expanded = self.expand_didden(H,D)
+        H_expanded = self.expand_hidden(H,D)
         P_pred = self.pitch_predictor(H_expanded)
         E_pred = self.energy_predictor(H_expanded)
         P = P_pred if is_inference else P_gt
