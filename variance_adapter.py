@@ -18,7 +18,7 @@ class DurationPredictor(nn.Module):
         
     def forward(self,x):
         x =x.permute(0,2,1)
-        x = self.relu(self.comv1(x))
+        x = self.relu(self.conv1(x))
         x = self.relu(self.conv2(x))
         x = self.linear(x.permute(0,2,1)).squeeze(-1)
         return x 
@@ -47,18 +47,18 @@ class VarianceAdaptor(nn.Module):
         self.pitch_predictor = PitchPredictor(d_model)
         self.energy_predictor = PitchPredictor(d_model) # same structure as pitch predictor
         self.pitch_proj = nn.Linear(1,d_model)
-        self.energy_proj = nn.Linear(1,d_mdoel)
+        self.energy_proj = nn.Linear(1,d_model)
         
         
-    def expand_hidden(self,hidden,duration):
+    def expand_hidden(self,H,D):
         batch_size,seq_len,hidden_dim , d_model = H.size()
         D = D.long()
         max_T = D.sum(dim=1).max()
-        H_expanded = torch.zeros(batch_size,max_T,d_mdoel).to(H.device)
+        H_expanded = torch.zeros(batch_size,max_T,d_model).to(H.device)
         for b in range(batch_size):
-             indices = torch.repeat_interleave(torch.arange(seq_len),device=H.device):
-             H_expanded[b,:len(indices)] = H[b,indices]
-             
+            indices = torch.repeat_interleave(torch.arange(seq_len),device=H.device)
+            H_expanded[b,:len(indices)] = H[b,indices]
+            
         return H_expanded
     
     def forward(self,H,D_gt=None,p_gt=None,E_gt=None,is_inference=False):
