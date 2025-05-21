@@ -1,3 +1,9 @@
+"""Waveform Decoder
+    Generates waveforms directly from the adapted hidden sequence.
+    Uses a WaveNet-like structure with non-causal dilated convolutions and an upsampling layer.
+"""
+
+
 import torch 
 import torch.nn as nn
 
