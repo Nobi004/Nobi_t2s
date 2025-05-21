@@ -1,4 +1,5 @@
 import torch 
+import torch.nn as nn 
 import numpy as np 
 
 def sifi_loss(pred,target,sr=22050,n_fft=[1024,2048,512],hop_length=256):
@@ -25,3 +26,4 @@ def sifi_loss(pred,target,sr=22050,n_fft=[1024,2048,512],hop_length=256):
     return loss / len(n_fft)
 
 
+mse_loss = nn.MSELoss()
