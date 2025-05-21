@@ -1,0 +1,16 @@
+tts_project/
+│
+├── data/
+│   ├── LJSpeech/              # Raw LJSpeech dataset
+│   ├── preprocessed/          # Preprocessed phonemes, durations, etc.
+│
+├── src/
+│   ├── preprocess.py          # Data preprocessing script
+│   ├── model.py               # Model architecture (Encoder, VarianceAdaptor, WaveformDecoder)
+│   ├── train.py               # Training loop
+│   ├── inference.py           # Inference script
+│
+├── cmudict-0.7b              # CMU Pronouncing Dictionary file
+├── train.py                  # Main script to run training
+├── infer.py                  # Main script to run inference
+├── requirements.txt           # Dependencies
