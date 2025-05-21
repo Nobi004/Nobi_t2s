@@ -5,7 +5,7 @@ def load_cmudict(file_path):
     with open(file_path, 'r') as f:
         for line in f: 
             if line.startswith(';;;'): continue
-            parts = line.strip().split('')
+            parts = line.strip().split()
             word = parts[0].lower()
             phonemes = parts[1:]
             cmudict[word] = phonemes
@@ -24,6 +24,6 @@ def simple_g2p(text,cmudict):
 
 cmudict = load_cmudict('cmudict-0.7b') #The CMU Pronouncing Dictionary
 
-text = "Hello World"
+text = "I love you"
 phonemes = simple_g2p(text,cmudict) #phoneme is a unit of sound in speech
 print(phonemes)
