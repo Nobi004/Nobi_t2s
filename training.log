@@ -2,3 +2,9 @@ Epoch 1, Loss: 96851586.37973139
 Epoch 2, Loss: 41391652.667277165
 Epoch 3, Loss: 40755846.73626374
 Epoch 4, Loss: 40162185.62148962
+Epoch 5, Loss: 39725369.777777776
+Epoch 1, Generator Loss: 1000000.0, Discriminator Loss: 0.6082581113130991
+Epoch 2, Generator Loss: 1000000.0, Discriminator Loss: 0.4358731059081682
+Epoch 3, Generator Loss: 1000000.0, Discriminator Loss: 0.30679689303609253
+Epoch 4, Generator Loss: 1000000.0, Discriminator Loss: 0.21289871064306215
+Epoch 5, Generator Loss: 1000000.0, Discriminator Loss: 0.14778121283718648
