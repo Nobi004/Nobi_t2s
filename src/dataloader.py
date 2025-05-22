@@ -36,22 +36,36 @@ class TTSDataset(Dataset):
         # Handle waveform
         waveform = waveform[:self.max_waveform_len] if len(waveform) > self.max_waveform_len else np.pad(waveform, (0, self.max_waveform_len - len(waveform)))
 
-        
-        # Truncate or pad to fixed length for batching
-        max_len = 20480  # ~1 second at 22050 Hz
-        waveform = waveform[:max_len] if len(waveform) > max_len else np.pad(waveform, (0, max_len - len(waveform)))
-        durations = durations[:len(phonemes)]
-        pitch = pitch[:max_len//256]
-        energy = energy[:max_len//256]
+        # Handle pitch and energy
+        max_frames = self.max_waveform_len // self.hop_length
+        pitch = pitch[:max_frames] if len(pitch) > max_frames else np.pad(pitch,(0,max_frames - len(pitch)))
+        energy = energy[:max_frames] if len(energy) > max_frames else np.pad(energy,(0,max_frames - len(energy)))
+
         
         return {
-            'phonemes': phoneme_indices,
+            'phonemes': torch.tensor(phoneme_indices,dtype=torch.long),
             'waveform': torch.tensor(waveform, dtype=torch.float),
             'durations': torch.tensor(durations, dtype=torch.float),
             'pitch': torch.tensor(pitch, dtype=torch.float),
-            'energy': torch.tensor(energy, dtype=torch.float)
+            'energy': torch.tensor(energy, dtype=torch.float),
+            'phoneme_len': phoneme_len
         }
+def collate_fn(batch):
+    phonemes = torch.stack([item['phonemes'] for item in batch])
+    waveforms = torch.stack([item['waveform'] for item in batch])
+    durations = torch.stack([item['durations'] for item in batch])
+    pitch = torch.stack([item['pitch'] for item in batch])
+    energy = torch.stack([item['energy'] for item in batch])
+    phoneme_lens = torch.tensor([item['phoneme_len'] for item in batch] , dtype=torch.long)
+    return {
+        'phonemes': phonemes,
+        'waveform': waveforms,
+        'durations': durations,
+        'pitch': pitch,
+        'energy': energy,
+        'phoneme_lens': phoneme_lens
+    }
 
 def get_dataloader(data_dir, batch_size=8):
     dataset = TTSDataset(data_dir)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0,collate_fn=collate_fn)
