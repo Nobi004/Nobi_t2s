@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-from model import EndToEndTTS
-from dataloader import get_dataloader, TTSDataset
+from src.model import EndToEndTTS
+from src.dataloader import get_dataloader, TTSDataset
 import scipy.io.wavfile
 import sys
 
@@ -12,6 +12,14 @@ def stft_loss(pred, target, sr=22050, n_fft=[1024, 2048, 512], hop_length=256):
         stft_target = torch.stft(target, n_fft=fft_size, hop_length=hop_length, return_complex=True)
         loss += torch.mean((stft_pred.abs() - stft_target.abs())**2)
     return loss / len(n_fft)
+
+def initialize_weights(m):
+    if isinstance(m, (nn.Conv1d, nn.ConvTranspose1d, nn.Linear)):
+        nn.init.xavier_uniform_(m.weight)
+        if m.bias is not None:
+            nn.init.zeros_(m.bias)
+    elif isinstance(m, nn.Embedding):
+        nn.init.normal_(m.weight, mean=0, std=0.02)
 
 def train():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -28,12 +36,13 @@ def train():
         num_blocks=30,
         channels=64
     )
+    model.apply(initialize_weights)
     model.to(device)
     optimizer_g = torch.optim.Adam(
-        [p for n, p in model.named_parameters() if 'discriminator' not in n], lr=0.0001
+        [p for n, p in model.named_parameters() if 'discriminator' not in n], lr=0.00005
     )
     optimizer_d = torch.optim.Adam(
-        [p for n, p in model.named_parameters() if 'discriminator' in n], lr=0.0001
+        [p for n, p in model.named_parameters() if 'discriminator' in n], lr=0.00005
     )
     mse_loss = nn.MSELoss()
     bce_loss = nn.BCEWithLogitsLoss()
@@ -41,6 +50,7 @@ def train():
     dataloader = get_dataloader('data/preprocessed', batch_size=4)
     num_epochs = 100
     total_batches = num_epochs * len(dataloader)
+    warmup_epochs = 3  # Train generator without discriminator initially
     
     for epoch in range(num_epochs):
         model.train()
@@ -57,13 +67,19 @@ def train():
                 pitch = batch['pitch'].to(device)
                 energy = batch['energy'].to(device)
                 
+                if batch_idx == 0 and epoch == 0:
+                    print(f"\nFeature stats: waveform min={waveform.min():.2f}, max={waveform.max():.2f}, "
+                          f"pitch mean={pitch.mean():.2f}, std={pitch.std():.2f}, "
+                          f"durations mean={durations.mean():.2f}, std={durations.std():.2f}, "
+                          f"energy mean={energy.mean():.2f}, std={energy.std():.2f}")
+                
                 print(f"\rTraining Progress: {progress_percent:.2f}% | "
                       f"Epoch {epoch+1}/{num_epochs} | Batch {batch_idx+1}/{len(dataloader)} | "
                       f"phonemes shape {phonemes.shape}, waveform shape {waveform.shape}, "
                       f"durations shape {durations.shape}, pitch shape {pitch.shape}, "
                       f"energy shape {energy.shape}", end="")
                 
-                # Generator (EndToEndTTS without discriminator)
+                # Generator
                 optimizer_g.zero_grad()
                 waveform_pred, D_pred, P_pred, E_pred, disc_score = model(phonemes, durations, pitch, energy)
                 
@@ -71,13 +87,12 @@ def train():
                       f"P_pred shape {P_pred.shape}, E_pred shape {E_pred.shape}, "
                       f"disc_score shape {disc_score.shape}", end="")
                 
-                loss_waveform = stft_loss(waveform_pred, waveform) * 0.1
+                loss_waveform = stft_loss(waveform_pred, waveform) * 0.005
                 loss_duration = mse_loss(D_pred, durations) * 1.0
-                loss_pitch = mse_loss(P_pred, pitch) * 1.0
+                loss_pitch = mse_loss(P_pred, pitch) * 0.0001
                 loss_energy = mse_loss(E_pred, energy) * 1.0
-                loss_adv = bce_loss(disc_score, torch.ones_like(disc_score)) * 0.1  # Generator wants D to predict "real"
+                loss_adv = bce_loss(disc_score, torch.ones_like(disc_score)) * 0.05 if epoch >= warmup_epochs else 0.0
                 total_loss_g_batch = loss_waveform + loss_duration + loss_pitch + loss_energy + loss_adv
-                total_loss_g_batch = torch.clamp(total_loss_g_batch, 0, 1e6)
                 
                 total_loss_g_batch.backward()
                 torch.nn.utils.clip_grad_norm_(
@@ -85,20 +100,22 @@ def train():
                 )
                 optimizer_g.step()
                 
-                # Discriminator
-                optimizer_d.zero_grad()
-                real_score = model.discriminator(waveform)
-                fake_score = model.discriminator(waveform_pred.detach())
-                loss_d_real = bce_loss(real_score, torch.ones_like(real_score))
-                loss_d_fake = bce_loss(fake_score, torch.zeros_like(fake_score))
-                total_loss_d_batch = (loss_d_real + loss_d_fake) * 0.5
-                total_loss_d_batch = torch.clamp(total_loss_d_batch, 0, 1e6)
-                
-                total_loss_d_batch.backward()
-                torch.nn.utils.clip_grad_norm_(
-                    [p for n, p in model.named_parameters() if 'discriminator' in n], max_norm=1.0
-                )
-                optimizer_d.step()
+                # Discriminator (after warmup)
+                if epoch >= warmup_epochs:
+                    optimizer_d.zero_grad()
+                    real_score = model.discriminator(waveform)
+                    fake_score = model.discriminator(waveform_pred.detach())
+                    loss_d_real = bce_loss(real_score, torch.ones_like(real_score))
+                    loss_d_fake = bce_loss(fake_score, torch.zeros_like(fake_score))
+                    total_loss_d_batch = (loss_d_real + loss_d_fake) * 0.5
+                    
+                    total_loss_d_batch.backward()
+                    torch.nn.utils.clip_grad_norm_(
+                        [p for n, p in model.named_parameters() if 'discriminator' in n], max_norm=1.0
+                    )
+                    optimizer_d.step()
+                else:
+                    total_loss_d_batch = torch.tensor(0.0)
                 
                 total_loss_g += total_loss_g_batch.item()
                 total_loss_d += total_loss_d_batch.item()
@@ -113,7 +130,7 @@ def train():
                       f"waveform_pred {waveform_pred.shape if 'waveform_pred' in locals() else 'N/A'}, "
                       f"D_pred {D_pred.shape if 'D_pred' in locals() else 'N/A'}, "
                       f"P_pred {P_pred.shape if 'P_pred' in locals() else 'N/A'}, "
-                      f"E_pred {E_pred.shape if 'E_pred' in locals() else 'N/A'}, "
+                      f"E_pred {E_pred.shape if 'P_pred' in locals() else 'N/A'}, "
                       f"disc_score {disc_score.shape if 'disc_score' in locals() else 'N/A'}")
                 print(f"Skipping batch {batch_idx}")
                 continue
