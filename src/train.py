@@ -1,8 +1,10 @@
 import torch 
 import torch.nn as nn
 
-from src.model import End2EndTTS
-from src.dataloader import get_dataloader
+# from src.model import End2EndTTS
+# from src.dataloader import get_dataloader
+from model import End2EndTTS
+from dataloader import get_dataloader
 import scipy.io.wavfile
 
 def stft_loss(pred,target,sr=22050,n_fft=[1024,2048,512],hop_length=256):

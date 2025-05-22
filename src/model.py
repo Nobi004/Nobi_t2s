@@ -4,9 +4,9 @@ import torch.nn as nn
 class Encoder(nn.Module):
     def __init__(self,vocab_size, d_model,nhead=4,num_layers=4):
         super().__init__()
-        self.embedding = nn.Embedding(vocab_size,d_model)
-        encoder_layer = nn.TransformerEncoderLayer(d_model, nhead,dim_feadforward=1024)
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer,num_layers)
+        self.embedding = nn.Embedding(vocab_size, d_model)
+        encoder_layer = nn.TransformerEncoderLayer(d_model, nhead, dim_feedforward=1024)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers)
 
         def forward(self,x):
             x = self.embedding(x) 
@@ -61,13 +61,12 @@ class EnergyPredictor(nn.Module):
 
 
 class VarianceAdaptor(nn.Module):
-    def __init__(self,d_model=25):
+    def __init__(self, in_dim=256, filter_size=256, kernel_size=3):
         super().__init__()
-        self.duration_predictor = DurationPredictor(d_model)
-        self.pitch_predictor = PitchPredictor(d_model)
-        self.energy_predictor = EnergyPredictor(d_model)
-        self.pitch_proj = nn.Linear(1,d_model)
-        self.energy_proj = nn.linear(1,d_model)
+        self.conv1 = nn.Conv1d(in_dim, filter_size, kernel_size, padding=1)
+        self.conv2 = nn.Conv1d(filter_size, filter_size, kernel_size, padding=1)
+        self.linear = nn.Linear(filter_size, 1)
+        self.relu = nn.ReLU()
 
     def expand_hidden(self,H,D):
         batch_size,seq_len,d_model = H.size()
