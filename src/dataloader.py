@@ -33,6 +33,10 @@ class TTSDataset(Dataset):
             phoneme_indices += [self.phoneme_to_idx['<pad>']] * (self.max_phoneme_len - phoneme_len)
             durations = np.pad(durations, (0, self.max_phoneme_len - phoneme_len), mode='constant') 
         
+        # Handle waveform
+        waveform = waveform[:self.max_waveform_len] if len(waveform) > self.max_waveform_len else np.pad(waveform, (0, self.max_waveform_len - len(waveform)))
+
+        
         # Truncate or pad to fixed length for batching
         max_len = 20480  # ~1 second at 22050 Hz
         waveform = waveform[:max_len] if len(waveform) > max_len else np.pad(waveform, (0, max_len - len(waveform)))
