@@ -1,0 +1,34 @@
++------------------+
+| Phonemes         |  [batch, 100]
+| (Input)          |
++------------------+
+          ↓
++------------------+                                 +------------------+
+| Encoder          |                                 | Ground-Truth     |
+| - Embedding      |  [batch, 100, 256]            | - Durations      |  [batch, 100]
+| - Transformer    |----------------------------→   | - Pitch          |  [batch, 80]
+|   (4 layers)     |                                 | - Energy         |  [batch, 80]
++------------------+                                 +------------------+
+          ↓                                                  ↓
++------------------+                                 +------------------+
+| VarianceAdaptor  |                                 | (Training Only)  |
+| - DurationPred   |  D_pred: [batch, 100]  ←-------| Durations        |
+| - PitchPred      |  P_pred: [batch, 80]   ←-------| Pitch            |
+| - EnergyPred     |  E_pred: [batch, 80]   ←-------| Energy           |
+| - Expand Hidden  |  H_adapted: [batch, 80, 256]    +------------------+
++------------------+        ↓
+          ↓                 Permute: [batch, 256, 80]
++------------------+
+| WaveformDecoder  |
+| - Upsample       |
+| - ResidualBlocks |  [batch, 64, 20480]
+|   (30 blocks)    |
+| - Final Conv     |
++------------------+
+          ↓
++------------------+
+| Waveform         |  [batch, 20480]
+| (Output)         |
++------------------+
+
+

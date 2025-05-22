@@ -49,21 +49,24 @@ class PitchPredictor(nn.Module):
         return x
 
 class VarianceAdaptor(nn.Module):
-    def __init__(self, d_model=256):
+    def __init__(self, d_model=256, max_frames=80):
         super().__init__()
         self.duration_predictor = DurationPredictor(d_model)
         self.pitch_predictor = PitchPredictor(d_model)
         self.energy_predictor = PitchPredictor(d_model)
         self.pitch_proj = nn.Linear(1, d_model)
         self.energy_proj = nn.Linear(1, d_model)
+        self.max_frames = max_frames
     
     def expand_hidden(self, H, D):
         batch_size, seq_len, d_model = H.size()
-        D = D.long()
-        max_T = D.sum(dim=1).max()
+        D = D.long().clamp(min=0)
+        max_T = min(D.sum(dim=1).max(), self.max_frames)
         H_expanded = torch.zeros(batch_size, max_T, d_model, device=H.device)
         for b in range(batch_size):
             indices = torch.repeat_interleave(torch.arange(seq_len, device=H.device), D[b])
+            if len(indices) > max_T:
+                indices = indices[:max_T]
             H_expanded[b, :len(indices)] = H[b, indices]
         return H_expanded
     
@@ -123,11 +126,12 @@ class EndToEndTTS(nn.Module):
     def __init__(self, vocab_size=100, d_model=256, nhead=4, num_encoder_layers=4, num_blocks=30, channels=64):
         super().__init__()
         self.encoder = Encoder(vocab_size, d_model, nhead, num_encoder_layers)
-        self.variance_adaptor = VarianceAdaptor(d_model)
+        self.variance_adaptor = VarianceAdaptor(d_model, max_frames=80)
         self.waveform_decoder = WaveformDecoder(d_model, num_blocks=num_blocks, channels=channels)
     
     def forward(self, text, D_gt=None, P_gt=None, E_gt=None, is_inference=False):
         H = self.encoder(text)
         H_adapted, D_pred, P_pred, E_pred = self.variance_adaptor(H, D_gt, P_gt, E_gt, is_inference)
+        H_adapted = H_adapted.permute(0, 2, 1)  # [batch, max_frames=80, d_model=256] -> [batch, d_model=256, max_frames=80]
         waveform = self.waveform_decoder(H_adapted)
         return waveform, D_pred, P_pred, E_pred
